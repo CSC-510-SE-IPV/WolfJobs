@@ -3,35 +3,32 @@ const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
 
 const User = require('../models/user');
+const bcrypt = require('bcryptjs');
 
 //Authentication using passport
 
 passport.use(new LocalStrategy({
-    usernameField: 'email'
-    },
-    function(email, password, done){
+    usernameField: 'email', // Field to be used as username
+    passwordField: 'password' // Field to be used as password
+}, async (email, password, done) => {
+    try {
+        const user = await User.findOne({ email: email });
+        if (!user) {
+            return done(null, false, { message: 'Incorrect email or password.' });
+        }
 
-        //find a user and establish the identity
+        // Compare the hashed password
+        const isMatch = await bcrypt.compare(password, user.password);
+        
+        if (!isMatch) {
+            return done(null, false, { message: 'Incorrect email or password.' });
+        }
 
-        User.findOne({email: email}, function(err,user){
-
-            if (err){
-                console.log('Error in finding the user ---> Passport');
-                return done(err)
-            }
-
-            if (!user || user.password != password){
-                console.log('Invalid Username/Password');
-                return done(null, false);
-
-            }
-
-            return done(null, user);
-
-        })
-
+        return done(null, user); // Authentication successful
+    } catch (err) {
+        return done(err);
     }
-));
+}));
 
 //Serializing the user to decide which key is to be kept in the cookies
 

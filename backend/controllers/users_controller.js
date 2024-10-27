@@ -1,4 +1,5 @@
 const User = require("../models/user");
+const bcrypt = require('bcryptjs'); 
 
 module.exports.profile = function(req,res){
     return res.render('user_profile', {
@@ -32,41 +33,35 @@ module.exports.signIn = function(req,res){
 }
 
 
-module.exports.create = function(req,res){
-
-    if (req.body.password != req.body.confirm_password)
-    {
-        return res.redirect('back');
-    }
-
-    User.findOne({email: req.body.email}, function(err,user){
-        if (err)
-        {
-            console.log('Error in finding user in Signing Up');
-            return;
-        }
-
-        if (!user)
-        {
-            User.create(req.body, function(err,user){
-                if(err)
-                {
-                    console.log('Error in creating a user while signing up');
-                    return;
-                }
-                return res.redirect('/users/sign-in');
-            })
-        }
-        else
-        {
+module.exports.create = async function(req, res) {
+    try {
+        if (req.body.password !== req.body.confirm_password) {
             return res.redirect('back');
         }
 
-    })
+        // Check if user already exists
+        let user = await User.findOne({ email: req.body.email });
+        
+        if (user) {
+            return res.redirect('back'); // User already exists
+        } else {
+            // Hash the password
+            const hashedPassword = await bcrypt.hash(req.body.password, 10); // 10 rounds of salt
 
+            // Create new user with hashed password
+            await User.create({
+                email: req.body.email,
+                password: hashedPassword,
+                name: req.body.name,
+            });
 
-
-}
+            return res.redirect('/users/sign-in');
+        }
+    } catch (err) {
+        console.log('Error in creating user:', err);
+        return res.redirect('back');
+    }
+};
 
 //Sign In the user and create session for the user
 

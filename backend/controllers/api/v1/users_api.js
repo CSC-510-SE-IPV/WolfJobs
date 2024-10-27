@@ -7,14 +7,14 @@ const Application = require("../../../models/application");
 const AuthOtp = require("../../../models/authOtp");
 
 const nodemailer = require("nodemailer");
-
+const bcrypt = require('bcryptjs'); // Add bcrypt
 require("dotenv").config();
 
 module.exports.createSession = async function (req, res) {
   try {
     let user = await User.findOne({ email: req.body.email });
     res.set("Access-Control-Allow-Origin", "*");
-    if (!user || user.password != req.body.password) {
+    if (!user || !(await bcrypt.compare(req.body.password, user.password))) { // Compare password
       return res.json(422, {
         message: "Invalid username or password",
       });
@@ -35,7 +35,6 @@ module.exports.createSession = async function (req, res) {
     });
   }
 };
-
 module.exports.createHistory = async function (req, res) {
   try {
     let history = await History.create({
@@ -65,24 +64,19 @@ module.exports.createHistory = async function (req, res) {
 
 module.exports.signUp = async function (req, res) {
   try {
-    if (req.body.password != req.body.confirm_password) {
+    if (req.body.password !== req.body.confirm_password) {
       return res.json(422, {
-        message: "Passwords donot match",
+        message: "Passwords do not match",
       });
     }
 
-    User.findOne({ email: req.body.email }, function (err, user) {
+    User.findOne({ email: req.body.email }, async function (err, user) {
       if (user) {
         res.set("Access-Control-Allow-Origin", "*");
         return res.json(200, {
-          message: "Sign Up Successful, here is your token, plz keep it safe",
-
+          message: "Sign Up Successful, here is your token, please keep it safe",
           data: {
-            //user.JSON() part gets encrypted
-
-            token: jwt.sign(user.toJSON(), "wolfjobs", {
-              expiresIn: "100000",
-            }),
+            token: jwt.sign(user.toJSON(), "wolfjobs", { expiresIn: "100000" }),
             user,
           },
           success: true,
@@ -90,28 +84,23 @@ module.exports.signUp = async function (req, res) {
       }
 
       if (!user) {
-        let user = User.create(req.body, function (err, user) {
-          if (err) {
-            return res.json(500, {
-              message: "Internal Server Error",
-            });
-          }
+        // Hash the password before saving the user
+        const hashedPassword = await bcrypt.hash(req.body.password, 10); // Hashing the password
 
-          // let userr = User.findOne({ email: req.body.email });
-          res.set("Access-Control-Allow-Origin", "*");
-          return res.json(200, {
-            message: "Sign Up Successful, here is your token, plz keep it safe",
+        // Create a new user with the hashed password
+        let newUser = await User.create({
+          ...req.body,
+          password: hashedPassword // Save the hashed password
+        });
 
-            data: {
-              //user.JSON() part gets encrypted
-
-              token: jwt.sign(user.toJSON(), "wolfjobs", {
-                expiresIn: "100000",
-              }),
-              user,
-            },
-            success: true,
-          });
+        res.set("Access-Control-Allow-Origin", "*");
+        return res.json(200, {
+          message: "Sign Up Successful, here is your token, please keep it safe",
+          data: {
+            token: jwt.sign(newUser.toJSON(), "wolfjobs", { expiresIn: "100000" }),
+            user: newUser,
+          },
+          success: true,
         });
       } else {
         return res.json(500, {
@@ -121,12 +110,12 @@ module.exports.signUp = async function (req, res) {
     });
   } catch (err) {
     console.log(err);
-
     return res.json(500, {
       message: "Internal Server Error",
     });
   }
 };
+
 
 module.exports.getProfile = async function (req, res) {
   try {
