@@ -492,6 +492,7 @@ module.exports.closeJob = async function (req, res) {
 };
 
 function getTransport() {
+  
   return nodemailer.createTransport({
     service: "gmail",
     auth: {
