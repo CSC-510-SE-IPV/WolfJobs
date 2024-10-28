@@ -365,10 +365,29 @@ module.exports.createApplication = async function (req, res) {
   }
 };
 
+// Configure the email transporter
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: 'autowolfjobs@gmail.com', // Your email
+    pass: 'kpee cokw ccab wzpq',     // App-specific password or actual password if Less Secure Apps is enabled
+  },
+});
+
 module.exports.modifyApplication = async function (req, res) {
   try {
-    let application = await Application.findById(req.body.applicationId);
+    // Log the incoming request body to confirm status and applicationId are provided
+    console.log("Request Body:", req.body);
 
+    // Find the application by ID and log if it's found
+    let application = await Application.findById(req.body.applicationId);
+    if (!application) {
+      console.error("Application not found for ID:", req.body.applicationId);
+      return res.status(404).json({ message: "Application not found" });
+    }
+    console.log("Application found:", application);
+
+    // Update the application status
     application.status = req.body.status;
 
     //change answer only from screening to grading
@@ -378,28 +397,96 @@ module.exports.modifyApplication = async function (req, res) {
       // application.answer3 = req.body.answer3;
       // application.answer4 = req.body.answer4;
       application.answers = req.body.answers;
+    // Log applicant email to confirm it’s not undefined
+    console.log("Applicant Email:", application.applicantemail);
+
+    // Send acceptance email if status is set to "accepted"
+    if (req.body.status === "accepted") {
+      if (!application.applicantemail) {
+        throw new Error("Applicant email is undefined or empty");
+      }
+      const acceptMailOptions = {
+        from: 'autowolfjobs@gmail.com',
+        to: application.applicantemail,
+        subject: 'Application Accepted',
+        text: `Dear ${application.applicantname},\n\nCongratulations! We are pleased to inform you that your application for ${application.jobname} has been accepted. Our team will reach out with further details soon.\n\nBest regards,\nWolfJobs Team`,
+      };
+
+      console.log("Sending acceptance email with options:", acceptMailOptions);
+
+      transporter.sendMail(acceptMailOptions, (error, info) => {
+        if (error) {
+          console.error('Error sending acceptance email:', error);
+        } else {
+          console.log('Acceptance email sent:', info.response);
+        }
+      });
     }
 
-    if (req.body.status === "rating") {
-      application.rating = req.body.rating;
+    // Send screening email if status is set to "screening"
+    if (req.body.status === "screening") {
+      if (!application.applicantemail) {
+        throw new Error("Applicant email is undefined or empty");
+      }
+      const screeningMailOptions = {
+        from: 'autowolfjobs@gmail.com',
+        to: application.applicantemail,
+        subject: 'Application Screening Phase',
+        text: `Dear ${application.applicantname},\n\nYour application for ${application.jobname} has moved to the screening phase. Please fill out the questionnaire.\n\nBest regards,\nWolfJobs Team`,
+      };
+
+      console.log("Sending screening email with options:", screeningMailOptions);
+
+      transporter.sendMail(screeningMailOptions, (error, info) => {
+        if (error) {
+          console.error('Error sending screening email:', error);
+        } else {
+          console.log('Screening email sent:', info.response);
+        }
+      });
     }
-    application.save();
+
+    // Send rejection email if status is set to "rejected"
+    if (req.body.status === "rejected") {
+      if (!application.applicantemail) {
+        throw new Error("Applicant email is undefined or empty");
+      }
+      const rejectMailOptions = {
+        from: 'autowolfjobs@gmail.com',
+        to: application.applicantemail,
+        subject: 'Application Rejected',
+        text: `Dear ${application.applicantname},\n\nThank you for your interest in ${application.jobname}. Unfortunately, we have decided to move forward with other candidates.\n\nBest regards,\nWolfJobs Team`,
+      };
+
+      console.log("Sending rejection email with options:", rejectMailOptions);
+
+      transporter.sendMail(rejectMailOptions, (error, info) => {
+        if (error) {
+          console.error('Error sending rejection email:', error);
+        } else {
+          console.log('Rejection email sent:', info.response);
+        }
+      });
+    }
+
+    // Save the updated application to the database
+    await application.save();
+    console.log("Application updated successfully in database:", application);
+
     res.set("Access-Control-Allow-Origin", "*");
-    return res.json(200, {
-      message: "Application is updated Successfully",
-      data: {
-        application,
-      },
+    return res.status(200).json({
+      message: "Application updated successfully",
+      data: { application },
       success: true,
     });
   } catch (err) {
-    console.log(err);
-
-    return res.json(500, {
+    console.error("Error in modifyApplication:", err);
+    return res.status(500).json({
       message: "Internal Server Error",
     });
   }
 };
+
 
 module.exports.acceptApplication = async function (req, res) {
   try {
