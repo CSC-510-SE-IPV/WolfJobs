@@ -1,4 +1,3 @@
-// export userRegistrationStore;
 import { create } from "zustand";
 
 type UserState = {
@@ -21,22 +20,8 @@ type UserState = {
 };
 
 type UserAction = {
-  updateName: (name: UserState["name"]) => void;
-  updateEmail: (name: UserState["email"]) => void;
-  updatePassword: (name: UserState["email"]) => void;
-  updateAddress: (name: UserState["address"]) => void;
-  updateRole: (name: UserState["role"]) => void;
-  updateDob: (name: UserState["dob"]) => void;
-  updateSkills: (name: UserState["skills"]) => void;
-  updatePhonenumber: (name: UserState["phonenumber"]) => void;
-  updateId: (name: UserState["id"]) => void;
-  updateAvailability: (name: UserState["availability"]) => void;
-  updateGender: (name: UserState["gender"]) => void;
-  updateHours: (name: UserState["hours"]) => void;
-  updateIsLoggedIn: (name: UserState["isLoggedIn"]) => void;
-  updateAffiliation: (name: UserState["affiliation"]) => void;
-  updateResume: (name: UserState["resume"]) => void;
-  updateResumeId: (name: UserState["resumeId"]) => void;
+  updateUser: (user: Partial<UserState>) => void; // Single update method
+  resetUser: () => void; // Optional: Reset user state
 };
 
 export const useUserStore = create<UserState & UserAction>()((set) => ({
@@ -57,52 +42,30 @@ export const useUserStore = create<UserState & UserAction>()((set) => ({
   resume: "",
   resumeId: "",
 
-  updateName: (name: string) => {
-    set(() => ({ name: name }));
+  // Unified update method for any user field
+  updateUser: (user: Partial<UserState>) => {
+    set((state) => ({ ...state, ...user }));
   },
-  updateEmail: (email: string) => {
-    set(() => ({ email: email }));
+
+  // Optional: Reset method to clear all user data
+  resetUser: () => {
+    set(() => ({
+      name: "",
+      email: "",
+      password: "",
+      address: "",
+      role: "",
+      dob: "",
+      skills: "",
+      phonenumber: "",
+      id: "",
+      availability: "",
+      gender: "",
+      hours: "",
+      affiliation: "",
+      isLoggedIn: false,
+      resume: "",
+      resumeId: "",
+    }));
   },
-  updatePassword: (password: string) => {
-    set(() => ({ password: password }));
-  },
-  updateAddress: (address: string) => {
-    set(() => ({ address: address }));
-  },
-  updateRole: (role: string) => {
-    set(() => ({ role: role }));
-  },
-  updateDob: (dob: string) => {
-    set(() => ({ dob: dob }));
-  },
-  updateSkills: (skills: string) => {
-    set(() => ({ skills: skills }));
-  },
-  updatePhonenumber: (phonenumber: string) => {
-    set(() => ({ phonenumber: phonenumber }));
-  },
-  updateId: (id: string) => {
-    set(() => ({ id: id }));
-  },
-  updateAvailability: (availability: string) => {
-    set(() => ({ availability: availability }));
-  },
-  updateGender: (gender: string) => {
-    set(() => ({ gender: gender }));
-  },
-  updateHours: (hours: string) => {
-    set(() => ({ hours: hours }));
-  },
-  updateIsLoggedIn: (isLoggedIn: boolean) => {
-    set(() => ({ isLoggedIn: isLoggedIn }));
-  },
-  updateAffiliation: (affiliation: string) => {
-    set(() => ({ affiliation: affiliation }));
-  },
-  updateResume: (resume: string) => {
-    set(() => ({resume: resume}))
-  },
-  updateResumeId: (resumeId: string) => {
-    set(() => ({resumeId: resumeId}))
-  }
 }));
